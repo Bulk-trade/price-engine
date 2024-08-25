@@ -1,0 +1,18 @@
+# Bulk Labs Limited Open Source Attribution License
+
+Copyright (c) 2024 Bulk Labs Limited
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+1. The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+2. Attribution Requirement: Any use, reproduction, or distribution of the Software, in whole or in part, must include clear and visible attribution to Bulk Labs Limited. This attribution must be displayed in one of the following ways:
+   a) In the user interface of any application using the Software, if applicable.
+   b) In the documentation or README file accompanying any distribution of the Software.
+   c) In any other reasonable manner that makes it clear that Bulk Labs Limited is the original creator of the Software.
+
+3. The attribution should be in the following format: "This software includes code developed by Bulk Labs Limited (https://bulk.trade)." You may include a link to Bulk Labs Limited's website if desired.
+
+4. Modification Notice: If you modify the Software, you must include a clear notice stating that you have modified the original work, along with the date of modification.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

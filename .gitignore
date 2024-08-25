@@ -1,0 +1,7 @@
+# Environment variables
+.env
+
+# Other common ignores
+/target
+*.rs.bk
+*.log

@@ -1,0 +1,27 @@
+[package]
+name = "bulk_price_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.3"
+actix-web-actors = "4.2"
+actix = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+anchor-client = "0.29.0"
+solana-sdk = "1.18"
+solana-client = "1.18"
+reqwest = { version = "0.11", features = ["json"] }
+log = "0.4"
+env_logger = "0.9"
+backoff = { version = "0.4", features = ["tokio"] }
+anyhow = "1.0"
+dotenv = "0.15.0"
+
+# scripts
+# cargo build
+# cargo watch -x 'run'
+# cargo run
+# cargo run --release

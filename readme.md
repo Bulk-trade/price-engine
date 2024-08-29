@@ -99,6 +99,73 @@ Key dependencies include:
 
 For a full list of dependencies, refer to the `Cargo.toml` file.
 
+## Flow Diagram
+
+```mermaid
+graph TD
+    A[Client] -->|WebSocket Connection| B(WebSocket Handler)
+    B -->|Initialize| C{Price in Cache?}
+    C -->|Yes| D[Send Cached Price]
+    C -->|No| E[Fetch Price]
+    E -->|API Request| F[Jupiter API]
+    F -->|Response| G[Parse Price]
+    G -->|Store| H[Price Cache]
+    H -->|Send| D
+    B -->|Start| I[Price Update Loop]
+    I -->|Every 3s| J{Active Connections?}
+    J -->|Yes| K[Fetch New Price]
+    K -->|Update| H
+    J -->|No| L[Stop Updates]
+    M[Health Check API] -->|Check| H
+```
+## Running with Docker
+
+This application can be run in a Docker container, which includes an auto-restart mechanism for improved reliability.
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Steps to run
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/Bulk-trade/price-engine.git
+   cd price-engine
+   ```
+
+2. Build the Docker image:
+   ```
+   docker-compose build
+   ```
+
+3. Start the container:
+   ```
+   docker-compose up
+   ```
+
+The Bulk Price Engine will now be running and accessible at `http://localhost:8080`. It will automatically restart if it crashes.
+
+### Environment Variables
+
+You can modify the following environment variables in the `docker-compose.yml` file:
+
+- `RUST_LOG`: Set the log level (e.g., debug, info, warn)
+- `JUPITER_API_URL`: The URL for the Jupiter API
+- `IP_ADDRESS`: The IP address to bind to (default: 0.0.0.0)
+- `PORT`: The port to run the application on (default: 8080)
+
+### Stopping the Application
+
+To stop the application, use:
+
+```
+docker-compose down
+```
+
+This will stop and remove the containers created by docker-compose.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

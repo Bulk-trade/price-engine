@@ -3,7 +3,7 @@ use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use actix_web_actors::ws;
 use anyhow::Error as AnyhowError;
 use backoff::{Error as BackoffError, ExponentialBackoff};
-use log::{error, info};
+use log::{error, info, debug};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
@@ -14,7 +14,7 @@ use tokio::time::{interval, Instant};
 
 pub const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PriceInfo {
     pub price: f64,
     pub timestamp: u64,
@@ -33,27 +33,32 @@ pub struct WsSession {
     pub token_decimal: u8,
 }
 
-pub trait TextSender {
-    fn text(&mut self, s: String);
-}
-
-impl TextSender for ws::WebsocketContext<WsSession> {
-    fn text(&mut self, s: String) {
-        ws::WebsocketContext::text(self, s);
-    }
-}
-
 impl WsSession {
-    pub fn stream_price<T>(&self, ctx: &mut T)
-    where
-        T: TextSender,
-    {
+    pub fn stream_price(&self, ctx: &mut ws::WebsocketContext<Self>) {
         let app_state = self.app_state.clone();
         let token_mint = self.token_mint.clone();
-        let price_cache = app_state.price_cache.try_read().unwrap();
-        if let Some(price_info) = price_cache.get(&token_mint) {
-            ctx.text(serde_json::to_string(price_info).unwrap());
+
+        
+        {
+            let price_cache = app_state.price_cache.try_read().unwrap();
+            if let Some(price_info) = price_cache.get(&token_mint) {
+                if let Ok(json) = serde_json::to_string(price_info) {
+                    ctx.text(json);
+                    debug!("Sent initial price for {}: {:?}", token_mint, price_info);
+                }
+            }
         }
+
+       
+        ctx.run_interval(Duration::from_secs(3), move |_, ctx| {
+            let price_cache = app_state.price_cache.try_read().unwrap();
+            if let Some(price_info) = price_cache.get(&token_mint) {
+                if let Ok(json) = serde_json::to_string(price_info) {
+                    ctx.text(json);
+                    debug!("Sent price update for {}: {:?}", token_mint, price_info);
+                }
+            }
+        });
     }
 
     pub fn ensure_price_updates(&self) {
@@ -108,12 +113,14 @@ impl Actor for WsSession {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
+        info!("WebSocket connection started for token: {}", self.token_mint);
         self.ensure_price_updates();
         self.increment_connection_count();
         self.stream_price(ctx);
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
+        info!("WebSocket connection closed for token: {}", self.token_mint);
         self.decrement_connection_count();
     }
 }
@@ -121,8 +128,20 @@ impl Actor for WsSession {
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
-            Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
+            Ok(ws::Message::Ping(msg)) => {
+                ctx.pong(&msg);
+                debug!("Received ping, sent pong");
+            },
+            Ok(ws::Message::Text(text)) => {
+                debug!("Received text message: {}", text);
+                
+            },
+            Ok(ws::Message::Binary(bin)) => {
+                debug!("Received binary message: {:?}", bin);
+                // You can add custom binary message handling here if needed
+            },
             Ok(ws::Message::Close(reason)) => {
+                info!("WebSocket closing: {:?}", reason);
                 ctx.close(reason);
                 ctx.stop();
             }
@@ -147,30 +166,51 @@ pub async fn fetch_price(token_mint: &str, token_decimal: u8) -> Result<f64, Any
             base_url, token_mint, USDC_MINT, amount_in,
         );
 
+        debug!("Fetching price from URL: {}", url);
+
         let response = reqwest::get(&url).await?;
+        let status = response.status();
         let body = response.text().await?;
 
-        let json_response: serde_json::Value = serde_json::from_str(&body)?;
+        if body.is_empty() {
+            error!("Received empty response from API. Status: {}", status);
+            return Err(AnyhowError::msg("Empty response from API"));
+        }
+
+        debug!("Received response: {}", body);
+
+        let json_response: serde_json::Value = match serde_json::from_str(&body) {
+            Ok(json) => json,
+            Err(e) => {
+                error!("Failed to parse JSON response: {}. Body: {}", e, body);
+                return Err(AnyhowError::msg(format!("JSON parsing error: {}", e)));
+            }
+        };
 
         if let Some(error) = json_response.get("error") {
-            if error.as_str().unwrap_or("").contains("Cannot compute other amount threshold") {
+            let error_msg = error.as_str().unwrap_or("Unknown error");
+            if error_msg.contains("Cannot compute other amount threshold") {
                 amount_in *= 10;
                 total_increase *= 10.0;
+                debug!("Increasing amount and retrying. New amount: {}", amount_in);
                 continue;
             } else {
-                return Err(AnyhowError::msg(format!(
-                    "API error: {}",
-                    error.as_str().unwrap_or("Unknown error")
-                )));
+                error!("API error: {}", error_msg);
+                return Err(AnyhowError::msg(format!("API error: {}", error_msg)));
             }
         }
 
         let out_amount = json_response["outAmount"]
             .as_str()
-            .ok_or_else(|| AnyhowError::msg("outAmount not found"))?
+            .ok_or_else(|| {
+                error!("outAmount not found in response: {:?}", json_response);
+                AnyhowError::msg("outAmount not found")
+            })?
             .parse::<f64>()?;
 
-        return Ok(out_amount / (1_000_000.0 * total_increase));
+        let price = out_amount / (1_000_000.0 * total_increase);
+        debug!("Calculated price for {}: {}", token_mint, price);
+        return Ok(price);
     }
 }
 
@@ -216,20 +256,19 @@ pub async fn update_price_cache(app_state: web::Data<AppState>, token_mint: Stri
 
         match fetch_result {
             Ok(price) => {
+                let price_info = PriceInfo {
+                    price,
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs(),
+                };
                 let mut cache = app_state.price_cache.write().await;
-                cache.insert(
-                    token_mint.clone(),
-                    PriceInfo {
-                        price,
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs(),
-                    },
-                );
+                cache.insert(token_mint.clone(), price_info.clone());
                 let mut last_fetch = app_state.last_fetch.write().await;
                 last_fetch.insert(token_mint.clone(), Instant::now());
                 info!("Updated price for {}: {}", token_mint, price);
+                debug!("New price available for {}: {:?}", token_mint, price_info);
             }
             Err(e) => error!(
                 "Failed to fetch price for {} after retries: {}",

@@ -1,5 +1,5 @@
 [package]
-name = "bulk_price_api"
+name = "bulk_price_engine"
 version = "0.1.0"
 edition = "2021"
 

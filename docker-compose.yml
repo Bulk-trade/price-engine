@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  price_engine:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=
+      - JUPITER_API_URL=
+      - IP_ADDRESS=
+      - PORT=
+    restart: always

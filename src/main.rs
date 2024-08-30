@@ -1,5 +1,5 @@
 use actix_web::{web, App, HttpServer};
-use bulk_price_api::{AppState, routes};
+use bulk_price_engine::{AppState, routes};
 use dotenv::dotenv;
 use env_logger::Env;
 use log::info;

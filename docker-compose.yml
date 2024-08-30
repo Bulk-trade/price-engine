@@ -5,8 +5,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - RUST_LOG=
-      - JUPITER_API_URL=
-      - IP_ADDRESS=
-      - PORT=
+      - RUST_LOG=debug
+      - JUPITER_API_URL=https://bulk.rpcpool.com/1e245781-b06d-4601-b628-61babccfcfa2/jupiter/quote
+      - IP_ADDRESS=0.0.0.0
+      - PORT=8080
     restart: always

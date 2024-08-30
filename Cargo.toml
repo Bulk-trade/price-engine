@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "bulk_price_api"
+name = "bulk_price_engine"
 path = "src/lib.rs"
 
 [[bin]]
-name = "bulk_price_api"
+name = "bulk_price_engine"
 path = "src/main.rs"
 
 [dependencies]
@@ -29,6 +29,7 @@ anyhow = "1.0"
 dotenv = "0.15.0"
 dashmap = "5.4"
 futures = "0.3"
+openssl = "0.10"
 
 [profile.release]
 lto = true

@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use tokio::runtime::Runtime;
-use bulk_price_api::{AppState, PriceInfo, fetch_price, update_price_cache, WsSession, TextSender};
+use bulk_price_engine::{AppState, PriceInfo, fetch_price, update_price_cache, WsSession, TextSender};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use std::collections::HashMap;

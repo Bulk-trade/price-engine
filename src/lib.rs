@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::{interval, Instant};
+use futures::executor::block_on;
 
 pub const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
@@ -38,9 +39,9 @@ impl WsSession {
         let app_state = self.app_state.clone();
         let token_mint = self.token_mint.clone();
 
-        
+        // Send initial price if available
         {
-            let price_cache = app_state.price_cache.try_read().unwrap();
+            let price_cache = block_on(app_state.price_cache.read());
             if let Some(price_info) = price_cache.get(&token_mint) {
                 if let Ok(json) = serde_json::to_string(price_info) {
                     ctx.text(json);
@@ -49,9 +50,9 @@ impl WsSession {
             }
         }
 
-       
+        // Set up interval for periodic updates
         ctx.run_interval(Duration::from_secs(3), move |_, ctx| {
-            let price_cache = app_state.price_cache.try_read().unwrap();
+            let price_cache = block_on(app_state.price_cache.read());
             if let Some(price_info) = price_cache.get(&token_mint) {
                 if let Ok(json) = serde_json::to_string(price_info) {
                     ctx.text(json);
@@ -134,11 +135,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsSession {
             },
             Ok(ws::Message::Text(text)) => {
                 debug!("Received text message: {}", text);
-                
             },
             Ok(ws::Message::Binary(bin)) => {
                 debug!("Received binary message: {:?}", bin);
-                // You can add custom binary message handling here if needed
             },
             Ok(ws::Message::Close(reason)) => {
                 info!("WebSocket closing: {:?}", reason);
@@ -263,10 +262,14 @@ pub async fn update_price_cache(app_state: web::Data<AppState>, token_mint: Stri
                         .unwrap()
                         .as_secs(),
                 };
-                let mut cache = app_state.price_cache.write().await;
-                cache.insert(token_mint.clone(), price_info.clone());
-                let mut last_fetch = app_state.last_fetch.write().await;
-                last_fetch.insert(token_mint.clone(), Instant::now());
+                {
+                    let mut cache = app_state.price_cache.write().await;
+                    cache.insert(token_mint.clone(), price_info.clone());
+                }
+                {
+                    let mut last_fetch = app_state.last_fetch.write().await;
+                    last_fetch.insert(token_mint.clone(), Instant::now());
+                }
                 info!("Updated price for {}: {}", token_mint, price);
                 debug!("New price available for {}: {:?}", token_mint, price_info);
             }

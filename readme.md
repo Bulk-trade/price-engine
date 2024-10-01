@@ -28,7 +28,7 @@ Bulk Price Engine is a Rust-based WebSocket server that provides real-time price
 
 2. Create a `.env` file in the project root and add the following environment variables:
    ```
-   JUPITER_API_URL=https://quote-api.jup.ag/v6/quote
+   JUPITER_API_URL=https://public.jupiterapi.com
    IP_ADDRESS=0.0.0.0
    PORT=8080
    ```
@@ -152,7 +152,7 @@ The Bulk Price Engine will now be running and accessible at `http://localhost:80
 You can modify the following environment variables in the `docker-compose.yml` file:
 
 - `RUST_LOG`: Set the log level (e.g., debug, info, warn)
-- `JUPITER_API_URL`: The URL for the Jupiter API
+- `JUPITER_API_URL`: The URL for the Jupiter API [Hosted Jupiter Swap API](https://marketplace.quicknode.com/add-on/metis-jupiter-v6-swap-api)
 - `IP_ADDRESS`: The IP address to bind to (default: 0.0.0.0)
 - `PORT`: The port to run the application on (default: 8080)
 
